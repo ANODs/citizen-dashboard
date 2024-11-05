@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ['nodejs', 'nodejs.npm']
+nixPkgs = ['nodejs', 'npm'] # Убираем nodejs.npm, добавляем npm отдельно
 
 [phases.install]
 cmds = ['npm ci']
