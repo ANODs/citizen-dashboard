@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ['nodejs'] # Убираем npm, так как он может быть включён в nodejs по умолчанию
+nixPkgs = ['nodejs']
 
 [phases.install]
 cmds = ['npm ci']
@@ -8,4 +8,4 @@ cmds = ['npm ci']
 cmds = ['npm run build']
 
 [start]
-cmd = 'npm run preview'
+cmd = 'vite preview --port 3000'
