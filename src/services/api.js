@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://citizen-frontend-3ab160-d1c449-147-45-175-42.traefik.me/api';
+const API_BASE_URL = 'http://citizen-backend-658002-ff9dbd-147-45-175-42.traefik.me/api';
 
 export const getCitizens = async () => {
   try {
