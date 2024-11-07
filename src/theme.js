@@ -18,7 +18,7 @@ const theme = createTheme({
     fontFamily: '"Montserrat", "Roboto", "Helvetica", "Arial", sans-serif',
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: 2,
   },
   components: {
     MuiPaper: {

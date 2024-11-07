@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Box, List, ListItem, ListItemIcon, Tooltip, useMediaQuery, useTheme } from '@mui/material';
-import { Dashboard as DashboardIcon, Person as PersonIcon } from '@mui/icons-material';
+import { Dashboard as DashboardIcon, Person as PersonIcon, Info as InfoIcon } from '@mui/icons-material';
 
 const Navigation = () => {
   const theme = useTheme();
@@ -11,6 +11,7 @@ const Navigation = () => {
   const navigationItems = [
     { icon: <DashboardIcon />, text: 'Дашборд', path: '/' },
     { icon: <PersonIcon />, text: 'Граждане', path: '/citizens' },
+    { icon: <InfoIcon />, text: 'Документация', path: '/documentation' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -21,7 +22,7 @@ const Navigation = () => {
       sx={{
         width: isMobile ? '100%' : 60,
         height: isMobile ? 'auto' : '100vh',
-        backgroundColor: 'background.paper',
+        backgroundColor: theme.palette.background.paper,
         position: 'fixed',
         left: 0,
         bottom: isMobile ? 0 : 'auto',
@@ -52,13 +53,10 @@ const Navigation = () => {
               justifyContent: 'center',
               px: isMobile ? 2 : 1,
               py: isMobile ? 1.5 : 2,
-              color: isActive(item.path) ? 'primary.main' : 'text.primary',
+              color: isActive(item.path) ? theme.palette.primary.main : theme.palette.text.primary,
               width: 'auto',
-              backgroundColor: isActive(item.path) ? 'background.highlight' : 'transparent',
+              backgroundColor: isActive(item.path) ? theme.palette.background.highlight : 'transparent',
               borderRadius: theme.shape.borderRadius,
-              '&:hover': {
-                backgroundColor: 'background.highlight',
-              },
             }}
           >
             <Tooltip title={item.text} placement={isMobile ? "top" : "right"} arrow={!isMobile}>

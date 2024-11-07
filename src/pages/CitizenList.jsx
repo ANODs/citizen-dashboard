@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
   Container, 
   Typography, 
   Box, 
-  TextField,
   Table,
   TableBody,
   TableCell,
@@ -15,57 +14,156 @@ import {
   Paper,
   Button,
   Alert,
-  CircularProgress,
+  TextField,
+  Skeleton,
 } from '@mui/material';
-import { getCitizens } from '../services/api';
+import { getCitizensSlice, searchCitizens } from '../services/api';
+import AdvancedSearch from '../components/AdvancedSearch';
 
 function CitizenList() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [citizens, setCitizens] = useState([]);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [filter, setFilter] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    first_name: '',
+    last_name: '',
+    middle_name: '',
+    birth_date: '',
+    birth_place: '',
+    gender: '',
+    address: '',
+    city: '',
+    country: '',
+    citizenship: '',
+    education_level: '',
+    marital_status: '',
+  });
+
+  const page = parseInt(searchParams.get('page') || '0', 10);
+  const rowsPerPage = parseInt(searchParams.get('rowsPerPage') || '10', 10);
 
   useEffect(() => {
-    const fetchCitizens = async () => {
-      try {
-        setLoading(true);
-        const data = await getCitizens();
-        setCitizens(data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching citizens:', err);
-        setError('Не удалось загрузить список граждан. Пожалуйста, попробуйте позже.');
-      } finally {
-        setLoading(false);
+    if (!isSearchActive) {
+      fetchCitizens();
+    }
+  }, [page, rowsPerPage, isSearchActive]);
+
+  const fetchCitizens = async () => {
+    try {
+      setLoading(true);
+      const start = page * rowsPerPage;
+      const end = start + rowsPerPage;
+      const response = await getCitizensSlice(start, end);
+      
+      if (response && Array.isArray(response.citizens) && typeof response.totalCount === 'number') {
+        setCitizens(response.citizens);
+        setTotalCount(response.totalCount);
+      } else {
+        throw new Error('Получены неверные данные от сервера');
       }
-    };
-    fetchCitizens();
-  }, []);
+      setError(null);
+    } catch (err) {
+      console.error('Ошибка при загрузке граждан:', err);
+      setError('Не удалось загрузить список граждан. Пожалуйста, попробуйте позже.');
+      setCitizens([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setSearchParams({ page: newPage.toString(), rowsPerPage: rowsPerPage.toString() });
+    if (!isSearchActive) {
+      fetchCitizens();
+    }
   };
 
   const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    const newPage = Math.floor((page * rowsPerPage) / newRowsPerPage);
+    setSearchParams({ page: newPage.toString(), rowsPerPage: newRowsPerPage.toString() });
+    if (!isSearchActive) {
+      fetchCitizens();
+    }
   };
 
-  const filteredCitizens = citizens.filter(
-    (citizen) =>
-      citizen.name.toLowerCase().includes(filter.toLowerCase()) ||
-      citizen.address.toLowerCase().includes(filter.toLowerCase())
-  );
+  const handleSearch = async (searchFilters) => {
+    try {
+      setLoading(true);
+      const results = await searchCitizens(searchFilters);
+      setCitizens(results.citizens);
+      setTotalCount(results.totalCount);
+      setError(null);
+      setIsSearchActive(true);
+      setSearchParams({ page: '0', rowsPerPage: rowsPerPage.toString() });
+    } catch (err) {
+      console.error('Ошибка при поиске граждан:', err);
+      setError('Не удалось выполнить поиск. Пожалуйста, попробуйте позже.');
+      setCitizens([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (loading) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
-        <CircularProgress />
-      </Container>
-    );
-  }
+  const handleResetSearch = () => {
+    setIsSearchActive(false);
+    setLocalSearchQuery('');
+    setFilters({
+      first_name: '',
+      last_name: '',
+      middle_name: '',
+      birth_date: '',
+      birth_place: '',
+      gender: '',
+      address: '',
+      city: '',
+      country: '',
+      citizenship: '',
+      education_level: '',
+      marital_status: '',
+    });
+    setSearchParams({ page: '0', rowsPerPage: rowsPerPage.toString() });
+    fetchCitizens();
+  };
+
+  const handleLocalSearchChange = (event) => {
+    setLocalSearchQuery(event.target.value);
+    setSearchParams({ page: '0', rowsPerPage: rowsPerPage.toString() });
+  };
+
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+  };
+
+  const filteredCitizens = useMemo(() => {
+    return citizens.filter((citizen) => {
+      const searchString = `${citizen.first_name} ${citizen.last_name} ${citizen.address}`.toLowerCase();
+      return searchString.includes(localSearchQuery.toLowerCase());
+    });
+  }, [citizens, localSearchQuery]);
+
+  const paginatedCitizens = useMemo(() => {
+    if (isSearchActive) {
+      const startIndex = page * rowsPerPage;
+      return filteredCitizens.slice(startIndex, startIndex + rowsPerPage);
+    }
+    return citizens;
+  }, [isSearchActive, filteredCitizens, citizens, page, rowsPerPage]);
+
+  const SkeletonRow = () => (
+    <TableRow>
+      <TableCell><Skeleton variant="text" width="100%" /></TableCell>
+      <TableCell><Skeleton variant="text" width="100%" /></TableCell>
+      <TableCell><Skeleton variant="text" width="100%" /></TableCell>
+      <TableCell><Skeleton variant="rectangular" width={100} height={36} /></TableCell>
+    </TableRow>
+  );
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -77,17 +175,25 @@ function CitizenList() {
           {error}
         </Alert>
       )}
-      <Box sx={{ mb: 2 }}>
+      <AdvancedSearch filters={filters} onFilterChange={handleFilterChange} onSearch={handleSearch} />
+      {isSearchActive && (
+        <Box sx={{ mt: 2, mb: 2 }}>
+          <Button variant="outlined" onClick={handleResetSearch}>
+            Сбросить поиск
+          </Button>
+        </Box>
+      )}
+      <Box sx={{ mt: 2, mb: 2 }}>
         <TextField
           fullWidth
-          label="Фильтр"
+          label="Локальный поиск"
           variant="outlined"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          value={localSearchQuery}
+          onChange={handleLocalSearchChange}
           sx={{ backgroundColor: 'background.paper', borderRadius: (theme) => theme.shape.borderRadius }}
         />
       </Box>
-      <TableContainer component={Paper} sx={{ backgroundColor: 'background.paper', borderRadius: (theme) => theme.shape.borderRadius }}>
+      <TableContainer component={Paper} sx={{ mt: 4, backgroundColor: 'background.paper', borderRadius: (theme) => theme.shape.borderRadius }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -98,12 +204,14 @@ function CitizenList() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredCitizens
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((citizen) => (
+            {loading ? (
+              Array.from({ length: rowsPerPage }).map((_, index) => (
+                <SkeletonRow key={index} />
+              ))
+            ) : paginatedCitizens.length > 0 ? (
+              paginatedCitizens.map((citizen) => (
                 <TableRow key={citizen.id}>
-                  
-                  <TableCell>{citizen.name}</TableCell>
+                  <TableCell>{`${citizen.first_name} ${citizen.last_name}`}</TableCell>
                   <TableCell>{new Date(citizen.birth_date).toLocaleDateString()}</TableCell>
                   <TableCell>{citizen.address}</TableCell>
                   <TableCell>
@@ -121,19 +229,33 @@ function CitizenList() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4}>
+                  <Alert severity="info">Нет данных для отображения</Alert>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </TableContainer>
       <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
         component="div"
-        count={filteredCitizens.length}
-        rowsPerPage={rowsPerPage}
+        count={isSearchActive ? filteredCitizens.length : totalCount}
         page={page}
         onPageChange={handleChangePage}
+        rowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[5, 10, 25, 50]}
         onRowsPerPageChange={handleChangeRowsPerPage}
-        sx={{ backgroundColor: 'background.paper', borderRadius: (theme) => `0 0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px` }}
+        labelDisplayedRows={({ from, to, count }) => 
+          `${from}-${to} из ${count}`
+        }
+        labelRowsPerPage="Строк на странице:"
+        sx={{ 
+          backgroundColor: 'background.paper', 
+          borderRadius: (theme) => `0 0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px` 
+        }}
       />
     </Container>
   );
