@@ -137,9 +137,9 @@ export default function Documentation() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 700, color: 'primary.main', mb: 4, textAlign: 'center' }}>
-        Документация
-      </Typography>
+        <Typography variant="h4" gutterBottom sx={{ fontWeight: 300, color: 'text.primary', mb: 4 }}>
+          Документация
+        </Typography>
 
       <Box sx={{ display: 'flex' }}>
         <Box sx={{ flex: '1 1 auto', mr: isLargeScreen ? 4 : 0 }}>

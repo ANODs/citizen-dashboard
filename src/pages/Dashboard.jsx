@@ -74,7 +74,7 @@ function Dashboard() {
   const citizenshipData = statistics ? getTop20Citizenships() : [];
 
   return (
-    <Box sx={{ backgroundColor: theme.palette.background.default, minHeight: '100vh', pt: 4 }}>
+    <Box sx={{ backgroundColor: theme.palette.background.default, minHeight: '100vh'}}>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Typography variant="h4" gutterBottom sx={{ fontWeight: 300, color: 'text.primary', mb: 4 }}>
           Панель управления
