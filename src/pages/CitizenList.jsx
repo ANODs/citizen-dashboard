@@ -16,6 +16,8 @@ import {
   Alert,
   TextField,
   Skeleton,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { getCitizensSlice, searchCitizens } from '../services/api';
 import AdvancedSearch from '../components/AdvancedSearch';
@@ -42,6 +44,10 @@ function CitizenList() {
     education_level: '',
     marital_status: '',
   });
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
   const page = parseInt(searchParams.get('page') || '0', 10);
   const rowsPerPage = parseInt(searchParams.get('rowsPerPage') || '10', 10);
@@ -92,7 +98,7 @@ function CitizenList() {
     }
   };
 
-  const handleSearch = async (searchFilters) => {
+  const handleAdvancedSearch = async (searchFilters) => {
     try {
       setLoading(true);
       const results = await searchCitizens(searchFilters);
@@ -102,7 +108,7 @@ function CitizenList() {
       setIsSearchActive(true);
       setSearchParams({ page: '0', rowsPerPage: rowsPerPage.toString() });
     } catch (err) {
-      console.error('Ошибка при поиске граждан:', err);
+      console.error('Ошибка при расширенном поиске:', err);
       setError('Не удалось выполнить поиск. Пожалуйста, попробуйте позже.');
       setCitizens([]);
       setTotalCount(0);
@@ -149,25 +155,25 @@ function CitizenList() {
   }, [citizens, localSearchQuery]);
 
   const paginatedCitizens = useMemo(() => {
-    if (isSearchActive) {
+    if (isSearchActive && localSearchQuery) {
       const startIndex = page * rowsPerPage;
       return filteredCitizens.slice(startIndex, startIndex + rowsPerPage);
     }
     return citizens;
-  }, [isSearchActive, filteredCitizens, citizens, page, rowsPerPage]);
+  }, [isSearchActive, localSearchQuery, filteredCitizens, citizens, page, rowsPerPage]);
 
   const SkeletonRow = () => (
     <TableRow>
       <TableCell><Skeleton variant="text" width="100%" /></TableCell>
       <TableCell><Skeleton variant="text" width="100%" /></TableCell>
-      <TableCell><Skeleton variant="text" width="100%" /></TableCell>
-      <TableCell><Skeleton variant="rectangular" width={100} height={36} /></TableCell>
+      {!isMobile && <TableCell><Skeleton variant="text" width="100%" /></TableCell>}
+      <TableCell><Skeleton variant="rectangular" width={isMobile ? 60 : 100} height={36} /></TableCell>
     </TableRow>
   );
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 300, color: 'text.primary', mb: 4 }}>
+      <Typography variant="h4" gutterBottom sx={{ fontWeight: 300, color: 'text.primary', mb: 4, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
         Список граждан
       </Typography>
       {error && (
@@ -175,7 +181,7 @@ function CitizenList() {
           {error}
         </Alert>
       )}
-      <AdvancedSearch filters={filters} onFilterChange={handleFilterChange} onSearch={handleSearch} />
+      <AdvancedSearch filters={filters} onFilterChange={handleFilterChange} onSearch={handleAdvancedSearch} />
       {isSearchActive && (
         <Box sx={{ mt: 2, mb: 2 }}>
           <Button variant="outlined" onClick={handleResetSearch}>
@@ -183,24 +189,26 @@ function CitizenList() {
           </Button>
         </Box>
       )}
-      <Box sx={{ mt: 2, mb: 2 }}>
-        <TextField
-          fullWidth
-          label="Локальный поиск"
-          variant="outlined"
-          value={localSearchQuery}
-          onChange={handleLocalSearchChange}
-          sx={{ backgroundColor: 'background.paper', borderRadius: (theme) => theme.shape.borderRadius }}
-        />
-      </Box>
+      {isSearchActive && (
+        <Box sx={{ mt: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Локальный поиск"
+            variant="outlined"
+            value={localSearchQuery}
+            onChange={handleLocalSearchChange}
+            sx={{ backgroundColor: 'background.paper', borderRadius: (theme) => theme.shape.borderRadius }}
+          />
+        </Box>
+      )}
       <TableContainer component={Paper} sx={{ mt: 4, backgroundColor: 'background.paper', borderRadius: (theme) => theme.shape.borderRadius }}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>ФИО</TableCell>
-              <TableCell>Дата рождения</TableCell>
-              <TableCell>Адрес</TableCell>
-              <TableCell>Действия</TableCell>
+              <TableCell sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem', md: '1rem' } }}>ФИО</TableCell>
+              <TableCell sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem', md: '1rem' } }}>Дата рождения</TableCell>
+              {!isMobile && <TableCell sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem', md: '1rem' } }}>Адрес</TableCell>}
+              <TableCell sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem', md: '1rem' } }}>Действия</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -211,28 +219,30 @@ function CitizenList() {
             ) : paginatedCitizens.length > 0 ? (
               paginatedCitizens.map((citizen) => (
                 <TableRow key={citizen.id}>
-                  <TableCell>{`${citizen.first_name} ${citizen.last_name}`}</TableCell>
-                  <TableCell>{new Date(citizen.birth_date).toLocaleDateString()}</TableCell>
-                  <TableCell>{citizen.address}</TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>{`${citizen.first_name} ${citizen.last_name}`}</TableCell>
+                  <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>{new Date(citizen.birth_date).toLocaleDateString()}</TableCell>
+                  {!isMobile && <TableCell sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' } }}>{citizen.address}</TableCell>}
                   <TableCell>
                     <Button 
                       component={Link} 
                       to={`/citizens/${citizen.id}`} 
                       variant="contained" 
                       color="primary"
+                      size={isMobile ? "small" : "medium"}
                       sx={{ 
                         textTransform: 'none',
                         borderRadius: (theme) => theme.shape.borderRadius,
+                        fontSize: { xs: '0.7rem', sm: '0.8rem', md: '0.875rem' }
                       }}
                     >
-                      Подробнее
+                      {isMobile ? 'Подр.' : 'Подробнее'}
                     </Button>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4}>
+                <TableCell colSpan={isMobile ? 3 : 4}>
                   <Alert severity="info">Нет данных для отображения</Alert>
                 </TableCell>
               </TableRow>
@@ -251,10 +261,16 @@ function CitizenList() {
         labelDisplayedRows={({ from, to, count }) => 
           `${from}-${to} из ${count}`
         }
-        labelRowsPerPage="Строк на странице:"
+        labelRowsPerPage="Строк:"
         sx={{ 
           backgroundColor: 'background.paper', 
-          borderRadius: (theme) => `0 0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px` 
+          borderRadius: (theme) => `0 0 ${theme.shape.borderRadius}px ${theme.shape.borderRadius}px`,
+          '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+            fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }
+          },
+          '.MuiTablePagination-select': {
+            fontSize: { xs: '0.75rem', sm: '0.875rem', md: '1rem' }
+          }
         }}
       />
     </Container>
